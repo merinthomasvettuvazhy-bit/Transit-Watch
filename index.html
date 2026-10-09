@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Travillox — public issue detection for bus app and bus facility complaints.">
+<title>Transit Watch — Transit Issue Intelligence</title>
+
+
+  <link rel="stylesheet" href="style.css">\n</head>
+<body>
+<div class="sky" id="stormSky"></div>
+<div class="shell">
+
+  <div id="authPage" class="auth-wrap" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-mark">T<span>W</span></div>
+        <p class="auth-eyebrow">PUBLIC TRANSPORT INTELLIGENCE</p>
+        <h1 id="authTitle">Transit Watch</h1>
+        <p class="auth-subtitle">Sign in to monitor and manage transit issues.</p>
+      </div>
+      <div class="auth-tabs" role="tablist">
+        <button type="button" class="auth-tab active" id="loginTab" onclick="switchAuthTab('login')">Sign in</button>
+        <button type="button" class="auth-tab" id="signupTab" onclick="switchAuthTab('signup')">Create account</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <div class="form-group"><label for="loginEmail">Email address</label><input id="loginEmail" name="email" type="email" placeholder="you@example.com" autocomplete="email" required></div>
+        <div class="form-group"><label for="loginPass">Password</label><input id="loginPass" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required minlength="6"></div>
+        <div class="auth-options"><label class="remember"><input id="rememberMe" type="checkbox"> Remember me</label><button type="button" class="text-button" onclick="showAuthMessage('Password recovery is a demo placeholder. Connect an authentication backend to enable reset emails.')">Forgot password?</button></div>
+        <button class="btn btn-primary auth-submit" type="submit">Sign in <span>→</span></button>
+        <p class="auth-note">New to Transit Watch? <button type="button" class="text-button" onclick="switchAuthTab('signup')">Create an account</button></p>
+      </form>
+      <form id="signupForm" class="auth-form" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label for="firstName">First name</label><input id="firstName" name="firstName" placeholder="First name" autocomplete="given-name" required></div>
+          <div class="form-group"><label for="lastName">Last name</label><input id="lastName" name="lastName" placeholder="Last name" autocomplete="family-name" required></div>
+        </div>
+        <div class="form-group"><label for="signupEmail">Email address</label><input id="signupEmail" name="email" type="email" placeholder="you@example.com" autocomplete="email" required></div>
+        <div class="form-group"><label for="signupRole">Account role</label><select id="signupRole" name="role" required><option value="Transit Analyst">Transit Analyst</option><option value="Field Reporter">Field Reporter</option><option value="Administrator">Administrator</option></select></div>
+        <div class="form-group"><label for="signupPass">Create password</label><input id="signupPass" name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required></div>
+        <div class="form-group"><label for="confirmPass">Confirm password</label><input id="confirmPass" name="confirmPassword" type="password" placeholder="Re-enter password" autocomplete="new-password" minlength="8" required></div>
+        <label class="remember terms"><input id="acceptTerms" type="checkbox" required> I agree to use Transit Watch responsibly.</label>
+        <button class="btn btn-primary auth-submit" type="submit">Create account <span>→</span></button>
+        <p class="auth-note">Already registered? <button type="button" class="text-button" onclick="switchAuthTab('login')">Sign in</button></p>
+      </form>
+      <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+      <p class="auth-security">🔒 Demo authentication · use a backend for real account security</p>
+    </div>
+  </div>
+
+  <!-- ================= SPINE NAV ================= -->
+  <nav class="spine">
+    <div class="brand">
+      <div class="mark">Transit<span class="dot"> Watch.</span></div>
+      <div class="sub">Transit Issue Intelligence</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-page="overview"><span class="num">01</span> Overview</div>
+      <div class="tab" data-page="feed"><span class="num">02</span> Live Issue Feed</div>
+      <div class="tab" data-page="app"><span class="num">03</span> App Diagnostics</div>
+      <div class="tab" data-page="facility"><span class="num">04</span> Facility Watch</div>
+      <div class="tab" data-page="routes"><span class="num">05</span> Routes &amp; Hotspots</div>
+      <div class="tab" data-page="resolution"><span class="num">06</span> Resolution &amp; SLA</div>
+    </div>
+    <div class="spine-foot">
+      <div><b>Coverage</b> · 42 routes / 318 stops</div>
+      <div><b>Data</b> · App logs + rider reports</div>
+      <div><b>Refreshed</b> · 2 min ago</div>
+    </div>
+  </nav>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+
+    <!-- ===================== Top Command Bar ===================== -->
+    <header class="command-bar" aria-label="Dashboard command bar">
+      <div class="command-search" role="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5"></circle>
+          <path d="m16 16 4.2 4.2"></path>
+        </svg>
+        <input id="global-search" type="text" autocomplete="off"
+               placeholder="Search issues, routes, stops..." aria-label="Search anything">
+        <span class="search-shortcut">⌘ K</span>
+      </div>
+
+      <button class="command-icon" id="notification-button" type="button"
+              aria-label="Notifications" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M10 21h4"></path>
+        </svg>
+        <span class="notification-dot">3</span>
+      </button>
+
+      <button class="command-icon" id="theme-button" type="button"
+              aria-label="Toggle theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65">
+          <circle cx="12" cy="12" r="3.2"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path>
+        </svg>
+      </button>
+
+      <div class="admin-wrap" id="admin-wrap">
+        <button class="admin-trigger" id="admin-trigger" type="button"
+                aria-haspopup="menu" aria-expanded="false">
+          <span class="admin-avatar">A</span>
+          <span class="admin-copy">
+            <span class="admin-name">Transit Admin</span>
+            <span class="admin-role">Administrator</span>
+          </span>
+          <svg class="admin-chevron" width="17" height="17" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="1.7">
+            <path d="m7 10 5 5 5-5"></path>
+          </svg>
+        </button>
+
+        <div class="admin-menu" id="admin-menu" role="menu">
+          <div class="menu-user">
+            <strong>Transit Admin</strong>
+            <span>Administrator · Transit Watch</span>
+          </div>
+          <button type="button" data-admin-action="profile">Profile settings</button>
+          <button type="button" data-admin-action="account">Account preferences</button>
+          <button type="button" data-admin-action="signout">Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="notification-panel" id="notification-panel" role="dialog"
+         aria-label="Notifications">
+      <div class="notification-head">
+        <strong>Notifications</strong>
+        <span>3 new</span>
+      </div>
+      <div class="notification-item">
+        <span class="notification-mark"></span>
+        <div><b>7 critical transit issues</b><p>New safety and service issues need attention.</p></div>
+      </div>
+      <div class="notification-item">
+        <span class="notification-mark"></span>
+        <div><b>Route anomaly detected</b><p>Route 14B is reporting abnormal complaint volume.</p></div>
+      </div>
+      <div class="notification-item">
+        <span class="notification-mark"></span>
+        <div><b>Issue stream updated</b><p>App and facility reports were refreshed successfully.</p></div>
+      </div>
+    </div>
+
+    <div class="command-toast" id="command-toast" role="status"></div>
+    <div class="profile-modal" id="profile-modal" aria-hidden="true">
+      <div class="profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+        <div class="profile-modal-top"><h3 id="profile-modal-title">Profile Settings</h3><button class="profile-modal-close" id="profile-modal-close" type="button" aria-label="Close">×</button></div>
+        <div class="profile-modal-avatar">A</div>
+        <div class="profile-field"><label for="profile-name">Name</label><input id="profile-name" value="Admin User"></div>
+        <div class="profile-field"><label for="profile-role">Role</label><input id="profile-role" value="Administrator" readonly></div>
+        <div class="profile-field"><label for="profile-email">Email</label><input id="profile-email" value="admin@transitwatch.app"></div>
+        <div class="profile-modal-actions"><button class="profile-cancel" id="profile-cancel" type="button">Cancel</button><button class="profile-save" id="profile-save" type="button">Save Changes</button></div>
+      </div>
+    </div>
+
+
+
+    <!-- ========== PAGE 1: OVERVIEW ========== -->
+    <section class="page active" id="overview">
+      <div class="page-head">
+        <div>
+          <h1>Public Issue Overview</h1>
+          <p>Complaints and detected faults across the bus rider app and physical bus facilities, aggregated in real time.</p>
+        </div>
+        <div class="meta"><span class="dotblink"></span><span class="live">LIVE</span> · Fri 11 Sep 2026, 09:42<br>Auto-refresh every 2 min</div>
+      </div>
+
+      <div class="command-bar">
+        <div class="command-search">🔍 <input placeholder="Search issue ID, route, or stop…"></div>
+        <div style="display:flex;gap:8px;">
+          <div class="filter-chip active">All Sources</div>
+          <div class="filter-chip">App Only</div>
+          <div class="filter-chip">Facility Only</div>
+          <div class="filter-chip">Last 24h</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="label">Open Issues</div>
+          <div class="value">1,284</div>
+          <div class="delta up">▲ 6.4% vs last week</div>
+        </div>
+        <div class="kpi a5">
+          <div class="label">Safety-Flagged</div>
+          <div class="value">37</div>
+          <div class="delta up">▲ 4 new today</div>
+        </div>
+        <div class="kpi a3">
+          <div class="label">App Crash Reports (24h)</div>
+          <div class="value">156</div>
+          <div class="delta down">▼ 11.2%</div>
+        </div>
+        <div class="kpi a2">
+          <div class="label">Facility Complaints (24h)</div>
+          <div class="value">289</div>
+          <div class="delta up">▲ 8.9%</div>
+        </div>
+        <div class="kpi a4">
+          <div class="label">Avg. Resolution Time</div>
+          <div class="value">2.4d</div>
+          <div class="delta down">▼ 0.3d faster</div>
+        </div>
+      </div>
+
+      <div class="callout"><b>Anomaly detected —</b> Route 14B has logged 3× its normal complaint volume in the last 6 hours, mostly GPS-tracking drift reports from the app.</div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Issues Reported — Last 30 Days</h3>
+          <p class="hint">Daily volume split by source</p>
+          <svg class="linechart" viewBox="0 0 640 220" preserveAspectRatio="none" id="trendChart"></svg>
+          <div class="legend">
+            <span><i style="background:var(--accent-3)"></i>App issues</span>
+            <span><i style="background:var(--accent-2)"></i>Facility issues</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Top Issue Categories</h3>
+          <p class="hint">Share of all open issues</p>
+          <div class="barlist">
+            <div class="barrow"><span class="name">Bus delay / ETA wrong</span><div class="track"><div class="fill" style="width:78%;background:var(--accent-3)"></div></div><span class="val">312</span></div>
+            <div class="barrow"><span class="name">Overcrowding</span><div class="track"><div class="fill" style="width:64%;background:var(--accent-2)"></div></div><span class="val">248</span></div>
+            <div class="barrow"><span class="name">GPS drift / tracking</span><div class="track"><div class="fill" style="width:52%;background:var(--accent-3)"></div></div><span class="val">201</span></div>
+            <div class="barrow"><span class="name">Cleanliness / hygiene</span><div class="track"><div class="fill" style="width:45%;background:var(--accent-2)"></div></div><span class="val">176</span></div>
+            <div class="barrow"><span class="name">Payment / ticketing fail</span><div class="track"><div class="fill" style="width:38%;background:var(--accent-3)"></div></div><span class="val">149</span></div>
+            <div class="barrow"><span class="name">Shelter / signage damage</span><div class="track"><div class="fill" style="width:29%;background:var(--accent-2)"></div></div><span class="val">113</span></div>
+            <div class="barrow"><span class="name">Driver conduct</span><div class="track"><div class="fill" style="width:21%;background:var(--accent-5)"></div></div><span class="val">85</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Most Recent Critical Reports</h3>
+        <p class="hint">Highest-severity items in the last 2 hours</p>
+        <table class="ledger">
+          <thead><tr><th>Time</th><th>Route</th><th>Source</th><th>Issue</th><th>Severity</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>09:31</td><td>14B</td><td><span class="badge app">App</span></td><td>Live location frozen for 22 min</td><td><span class="badge crit">Critical</span></td><td><span class="badge open">Open</span></td></tr>
+            <tr><td>09:02</td><td>7</td><td><span class="badge fac">Facility</span></td><td>Broken ramp — wheelchair access blocked</td><td><span class="badge crit">Critical</span></td><td><span class="badge prog">In progress</span></td></tr>
+            <tr><td>08:47</td><td>22</td><td><span class="badge fac">Facility</span></td><td>No lighting at Elm St. shelter (reported unsafe at night)</td><td><span class="badge high">High</span></td><td><span class="badge open">Open</span></td></tr>
+            <tr><td>08:15</td><td>3A</td><td><span class="badge app">App</span></td><td>Fare payment charged twice</td><td><span class="badge high">High</span></td><td><span class="badge prog">In progress</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== PAGE 2: LIVE FEED ========== -->
+    <section class="page" id="feed">
+      <div class="page-head">
+        <div><h1>Live Issue Feed</h1><p>Every report ingested from the app and from field/rider submissions, newest first.</p></div>
+        <div class="meta"><span class="dotblink"></span><span class="live">STREAMING</span></div>
+      </div>
+      <div class="command-bar">
+        <div class="command-search">🔍 <input placeholder="Filter by keyword, stop, or reporter…"></div>
+        <div style="display:flex;gap:8px;">
+          <div class="filter-chip active">All</div>
+          <div class="filter-chip">Critical</div>
+          <div class="filter-chip">Unassigned</div>
+        </div>
+      </div>
+      <div class="card">
+        <table class="ledger">
+          <thead><tr><th>ID</th><th>Time</th><th>Source</th><th>Route / Stop</th><th>Category</th><th>Severity</th><th>Status</th><th>Reporter</th></tr></thead>
+          <tbody id="feedBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== PAGE 3: APP DIAGNOSTICS ========== -->
+    <section class="page" id="app">
+      <div class="page-head">
+        <div><h1>App Diagnostics</h1><p>Crash logs, error rates, and in-app rider complaints for the Transit Watch companion app.</p></div>
+        <div class="meta">Build 4.12.0 · 2 platforms tracked</div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="kpi a3"><div class="label">Crash-Free Sessions</div><div class="value">96.8%</div><div class="delta down">▼ 0.6pt</div></div>
+        <div class="kpi a3"><div class="label">GPS Drift Reports</div><div class="value">201</div><div class="delta up">▲ 18%</div></div>
+        <div class="kpi a2"><div class="label">Payment Failures</div><div class="value">149</div><div class="delta up">▲ 5%</div></div>
+        <div class="kpi a4"><div class="label">App Store Rating</div><div class="value">3.4★</div><div class="delta down">▼ 0.1</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Error Type Breakdown</h3>
+          <p class="hint">Logged app-side errors, last 7 days</p>
+          <div class="barlist">
+            <div class="barrow"><span class="name">Live tracking freeze</span><div class="track"><div class="fill" style="width:80%;background:var(--accent-3)"></div></div><span class="val">412</span></div>
+            <div class="barrow"><span class="name">Login / session drop</span><div class="track"><div class="fill" style="width:58%;background:var(--accent-3)"></div></div><span class="val">298</span></div>
+            <div class="barrow"><span class="name">Payment gateway timeout</span><div class="track"><div class="fill" style="width:41%;background:var(--accent-3)"></div></div><span class="val">210</span></div>
+            <div class="barrow"><span class="name">Push notification failure</span><div class="track"><div class="fill" style="width:30%;background:var(--accent-3)"></div></div><span class="val">153</span></div>
+            <div class="barrow"><span class="name">Route search crash</span><div class="track"><div class="fill" style="width:18%;background:var(--accent-3)"></div></div><span class="val">92</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Platform Split</h3>
+          <p class="hint">Crash reports by device OS</p>
+          <div class="barlist">
+            <div class="barrow"><span class="name">Android</span><div class="track"><div class="fill" style="width:72%;background:var(--accent-1)"></div></div><span class="val">68%</span></div>
+            <div class="barrow"><span class="name">iOS</span><div class="track"><div class="fill" style="width:34%;background:var(--accent-4)"></div></div><span class="val">32%</span></div>
+          </div>
+          <p class="hint" style="margin-top:18px;">Recent app-store review sentiment</p>
+          <div class="barlist">
+            <div class="barrow"><span class="name">Negative</span><div class="track"><div class="fill" style="width:54%;background:var(--danger)"></div></div><span class="val">54%</span></div>
+            <div class="barrow"><span class="name">Neutral</span><div class="track"><div class="fill" style="width:28%;background:var(--accent-4)"></div></div><span class="val">28%</span></div>
+            <div class="barrow"><span class="name">Positive</span><div class="track"><div class="fill" style="width:18%;background:var(--accent-1)"></div></div><span class="val">18%</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PAGE 4: FACILITY WATCH ========== -->
+    <section class="page" id="facility">
+      <div class="page-head">
+        <div><h1>Facility Watch</h1><p>Condition reports for stops, shelters, terminals, and on-board bus facilities.</p></div>
+        <div class="meta">318 stops monitored</div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="kpi a2"><div class="label">Stops w/ Open Issues</div><div class="value">94</div><div class="delta up">▲ 7</div></div>
+        <div class="kpi a5"><div class="label">Accessibility Blockers</div><div class="value">12</div><div class="delta up">▲ 2</div></div>
+        <div class="kpi a2"><div class="label">Cleanliness Complaints</div><div class="value">176</div><div class="delta up">▲ 9%</div></div>
+        <div class="kpi a1"><div class="label">Repairs Completed (7d)</div><div class="value">61</div><div class="delta down">▼ steady</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Facility Issue Categories</h3>
+          <p class="hint">Open reports by type</p>
+          <div class="barlist">
+            <div class="barrow"><span class="name">Overcrowding at boarding</span><div class="track"><div class="fill" style="width:76%;background:var(--accent-2)"></div></div><span class="val">248</span></div>
+            <div class="barrow"><span class="name">Cleanliness / hygiene</span><div class="track"><div class="fill" style="width:54%;background:var(--accent-2)"></div></div><span class="val">176</span></div>
+            <div class="barrow"><span class="name">Shelter / signage damage</span><div class="track"><div class="fill" style="width:35%;background:var(--accent-2)"></div></div><span class="val">113</span></div>
+            <div class="barrow"><span class="name">Broken lighting</span><div class="track"><div class="fill" style="width:24%;background:var(--accent-2)"></div></div><span class="val">78</span></div>
+            <div class="barrow"><span class="name">Ramp / accessibility fault</span><div class="track"><div class="fill" style="width:11%;background:var(--accent-5)"></div></div><span class="val">36</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Stops Needing Attention</h3>
+          <p class="hint">Ranked by open-issue count</p>
+          <table class="ledger">
+            <thead><tr><th>Stop</th><th>Route(s)</th><th>Open</th><th>Top Issue</th></tr></thead>
+            <tbody>
+              <tr><td>Elm St. Shelter</td><td>22, 22X</td><td>14</td><td>No lighting at night</td></tr>
+              <tr><td>Central Terminal Bay 4</td><td>7, 9, 14B</td><td>11</td><td>Overcrowding</td></tr>
+              <tr><td>Market Sq.</td><td>3A</td><td>9</td><td>Cracked pavement / ramp</td></tr>
+              <tr><td>Riverside Interchange</td><td>14B, 18</td><td>8</td><td>Signage missing</td></tr>
+              <tr><td>Oak Park Loop</td><td>6</td><td>6</td><td>Litter / cleanliness</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PAGE 5: ROUTES & HOTSPOTS ========== -->
+    <section class="page" id="routes">
+      <div class="page-head">
+        <div><h1>Routes &amp; Hotspots</h1><p>Where complaints concentrate, across all 42 monitored routes.</p></div>
+        <div class="meta">Sorted by open-issue volume</div>
+      </div>
+      <div class="card">
+        <table class="ledger">
+          <thead><tr><th>Route</th><th>Open Issues</th><th>App</th><th>Facility</th><th>Critical</th><th>Trend</th></tr></thead>
+          <tbody>
+            <tr><td>14B</td><td>142</td><td>96</td><td>46</td><td>6</td><td><span class="badge crit">▲ Rising fast</span></td></tr>
+            <tr><td>7</td><td>98</td><td>31</td><td>67</td><td>3</td><td><span class="badge high">▲ Rising</span></td></tr>
+            <tr><td>22</td><td>84</td><td>22</td><td>62</td><td>4</td><td><span class="badge high">▲ Rising</span></td></tr>
+            <tr><td>3A</td><td>77</td><td>48</td><td>29</td><td>2</td><td><span class="badge med">→ Stable</span></td></tr>
+            <tr><td>9</td><td>63</td><td>20</td><td>43</td><td>1</td><td><span class="badge low">▼ Falling</span></td></tr>
+            <tr><td>18</td><td>51</td><td>19</td><td>32</td><td>0</td><td><span class="badge low">▼ Falling</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== PAGE 6: RESOLUTION & SLA ========== -->
+    <section class="page" id="resolution">
+      <div class="page-head">
+        <div><h1>Resolution &amp; SLA</h1><p>How reported issues move from intake to close, and where they stall.</p></div>
+        <div class="meta">Target SLA: 72h for High/Critical</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Resolution Funnel — Last 30 Days</h3>
+          <p class="hint">All reported issues, app + facility combined</p>
+          <div class="funnel">
+            <div class="funnel-row"><span class="stage">Reported</span><div class="funnel-bar" style="width:100%;background:var(--accent-3)"></div><span>2,406</span></div>
+            <div class="funnel-row"><span class="stage">Acknowledged</span><div class="funnel-bar" style="width:88%;background:var(--accent-4)"></div><span>2,117</span></div>
+            <div class="funnel-row"><span class="stage">In progress</span><div class="funnel-bar" style="width:61%;background:var(--accent-2)"></div><span>1,468</span></div>
+            <div class="funnel-row"><span class="stage">Resolved</span><div class="funnel-bar" style="width:47%;background:var(--accent-1)"></div><span>1,122</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>SLA Compliance by Team</h3>
+          <p class="hint">Share of issues closed within target window</p>
+          <div class="barlist">
+            <div class="barrow"><span class="name">App Engineering</span><div class="track"><div class="fill" style="width:82%;background:var(--accent-1)"></div></div><span class="val">82%</span></div>
+            <div class="barrow"><span class="name">Facilities Maintenance</span><div class="track"><div class="fill" style="width:64%;background:var(--accent-4)"></div></div><span class="val">64%</span></div>
+            <div class="barrow"><span class="name">Cleaning Crew</span><div class="track"><div class="fill" style="width:71%;background:var(--accent-1)"></div></div><span class="val">71%</span></div>
+            <div class="barrow"><span class="name">Accessibility Response</span><div class="track"><div class="fill" style="width:49%;background:var(--danger)"></div></div><span class="val">49%</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+
+
+
+
+  <script src="script.js" defer></script>\n</body>
+</html>
